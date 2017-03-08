@@ -1,0 +1,15 @@
+"D:\ProgramFiles\iar\arm\bin\armproc.dll" 
+
+"D:\ProgramFiles\iar\arm\bin\armjlink2.dll" 
+
+"D:\m1899\Documents\单片机学习\Powered by ZZS\校园智能车大赛\权重算法6.0(超级飞卡版)\Prj\IAR\Debug\Exe\VCAN_KL.out" 
+
+--plugin "D:\ProgramFiles\iar\arm\bin\armbat.dll" 
+
+--device_macro "D:\ProgramFiles\iar\arm\config\debugger\NXP\KLxx.dmac" 
+
+--flash_loader "D:\ProgramFiles\iar\arm\config\flashloader\Freescale\FlashKLxx256K.board" 
+
+
+
+
