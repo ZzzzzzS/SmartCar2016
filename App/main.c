@@ -1,9 +1,6 @@
 #include "common.h"
 #include "include.h"
 
-//电压7.35-7.36
-//7.5也可
-
 #define MOTOR1_IO   PTC12
 #define MOTOR2_IO   PTE31
 #define MOTOR3_IO   PTC13
@@ -22,13 +19,9 @@
 
 #define MOTOR_HZ    (20*1000)
 
-char angle_set=15;    //15   注意后面还有个angle_set要修改
-
-char stop_time=85;
+#define angle_set 25    //15
 
 char start_speed=100;
-
-unsigned int flag=0,time=0;
 
 char table_code[42]={60,60,60,60,55,50,45,45,40,40,40,30,30,30,25,25,20,20,15,15,15,15,10,10,10,3,3,3,2,2,2,2,1,1,1,1,0,0,0,0};
                      //60有效
@@ -50,28 +43,6 @@ void DMA0_IRQHandler();
 
 
 
-void LPTMR_IRQHandler(void)     //停车
-{   
-  time++;
-  if(flag>=8&&time>=stop_time)//进第一个板停车
-  {
-    tpm_pwm_duty(MOTOR_TPM, MOTOR3_PWM,100);
-    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,100);
-    tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100);
-    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,100); 
-    led(LED1, LED_ON);                  
-    led(LED2, LED_ON); 
-    led(LED3, LED_ON); 
-    led(LED0, LED_ON); 
-    while(1);
-  }
-  if(flag<=5)
-    time=0;
-  LPTMR_Flag_Clear();       //清中断标志位
-}
-
-
-
 
 
 
@@ -84,13 +55,13 @@ void LPTMR_IRQHandler(void)     //停车
 int turn(void)
 {
 	int zzs_i =2400, zzs_j;
-	long long int zzs_number=0;
-        long long int zzs_weight=0;
+	int zzs_number=0;
+        int zzs_weight=0;
 
 	for(zzs_i=30*80;zzs_i<4800;zzs_i+=80)
 		for(zzs_j=0;zzs_j<80;zzs_j+=1)
 		{
-			if(g_zzs_image[zzs_i+zzs_j]!=0)
+			if(g_zzs_image[zzs_i+zzs_j]==0)    //==是飞卡版    !=0是早年飞卡版
 			{
 				      //i为纵坐标 j为横坐标
                                 if(zzs_j<40)
@@ -138,6 +109,7 @@ void control_motor(int angle)
     }
     if(turn>=100-start_speed)
       turn=100-start_speed;
+
     if(turn>0)
     {
       tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100 - turn);//turn
@@ -174,7 +146,7 @@ void control_motor(int angle)
  *  @since      v5.0
  *  @note       山外 DMA 采集摄像头 实验
  */
-void  main(void)
+ void  main(void)
 {
   char inin=0;
   
@@ -215,51 +187,10 @@ void  main(void)
     
     tpm_pwm_duty(MOTOR_TPM, MOTOR3_PWM,100);   //电机右
     tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_speed);
+
     
-    
-    gpio_init (PTC0,  GPI , 0);          //红外检测端口
-    gpio_init (PTC1,  GPI , 0); 
-     
-    port_init (PTC0,  ALT1 | PULLUP ); 
-    port_init (PTC1,  ALT1 | PULLUP );
-    
-    gpio_init(PTB0,GPI,0);                       //输入按键
-    gpio_init(PTB1,GPI,0);
-    
-    
-    port_init (PTB0, ALT1 | PULLUP );
-    port_init (PTB1, ALT1 | PULLUP );
-           
-    lptmr_timing_ms(100);                                  //初始化LPTMR，计时时间为0.1s
-    set_vector_handler(LPTMR_VECTORn ,LPTMR_IRQHandler);    //设置LPTMR的中断服务函数为 LPTMR_IRQHandler
-    enable_irq (LPTMR_IRQn);                                //使能LPTMR中断
-    
-    DELAY_MS(200);
-    while(gpio_get(PTB1)!=0)
-    { 
-      if(gpio_get(PTB0)==0)
-      {
-        DELAY_MS(10);
-        if(gpio_get(PTB0)==0)
-        {
-          inin++;
-          if(inin>=3)
-            inin=0;
-        }
-        while(gpio_get(PTB0)==0);
-      }
-      switch(inin)
-      {
-      case 0: stop_time=80;led(LED0, LED_ON);led(LED1, LED_OFF);led(LED2, LED_OFF);break;
-      case 1: stop_time=85;led(LED1, LED_ON);led(LED2, LED_OFF);led(LED0, LED_OFF);break;
-      case 2: stop_time=90;led(LED2, LED_ON);led(LED0, LED_OFF);led(LED1, LED_OFF);break;
-      default:led(LED0, LED_OFF);led(LED1, LED_OFF);led(LED2, LED_OFF);break;
-      }
-    }
-    while(gpio_get(PTB1)!=0);
-    DELAY_MS(10);
-    while(gpio_get(PTB1)!=0);
-    start_speed=10;
+
+    start_speed=5;
     while(1)
     {
         //获取图像
@@ -271,56 +202,7 @@ void  main(void)
 
         //解压图像  ，把解压的数据放到 img 数据里。
         img_extract(g_zzs_image,imgbuff,CAMERA_SIZE);
-        
-        //获得红外数据      
-         wall_left=gpio_get(PTC0);    
-         wall_right=gpio_get(PTC1); 
-         
-        
-
-         
-         if(wall_right==0)    //判断墙壁
-        {
-           led(LED1, LED_ON);
-           control_motor(-18*18*15);//15
-        }
- 
-          else if(wall_left==0)     //判断墙壁
-	{ 
-          if(flag<=10)
-          {
-            led(LED2, LED_ON);
-            control_motor(-40*40*15);   //30
-            DELAY_MS(2);
-            flag++;
-          }
-          else
-          {
-            control_motor(0);
-            led(LED2, LED_OFF);
-          }          
-	}
-	else 
-        {
-            if(flag>=10)
-			{
-				start_speed=30;//45
-				angle_set=10;
-			}
-              
-            control_motor(turn());//控制电机转弯 
-            led(LED1, LED_OFF);
-	}         
-         
-         
-         
-         
-         
-         
-         
-         
-         
-         
+        control_motor(turn());//控制电机转弯  
          
     }
 }

@@ -89,7 +89,7 @@
         </option>
         <option>
           <name>OGChipSelectEditMenu</name>
-          <state>MKL26Z256xxx4	Freescale MKL26Z256xxx4</state>
+          <state>MKL26Z256xxx4	NXP MKL26Z256xxx4</state>
         </option>
         <option>
           <name>GenLowLevelInterface</name>
@@ -149,7 +149,7 @@
         </option>
         <option>
           <name>GFPUDeviceSlave</name>
-          <state>MKL26Z256xxx4	Freescale MKL26Z256xxx4</state>
+          <state>MKL26Z256xxx4	NXP MKL26Z256xxx4</state>
         </option>
         <option>
           <name>FPU2</name>
