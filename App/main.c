@@ -3,7 +3,7 @@
 #include "common.h"
 #include "include.h"
 
-
+//µçÑ¹7.35-7.36
 
 #define MOTOR1_IO   PTC12
 #define MOTOR2_IO   PTE31
@@ -57,16 +57,16 @@ int turn(void)
 	int zzs_number=0;
         int zzs_weight=0;
 
-	for(zzs_i=0;zzs_i<4800;zzs_i+=160)
+	for(zzs_i=30*80;zzs_i<4800;zzs_i+=80)
 		for(zzs_j=0;zzs_j<80;zzs_j+=1)
 		{
 			if(g_zzs_image[zzs_i+zzs_j]!=0)
 			{
 				      //iÎª×Ý×ø±ê jÎªºá×ø±ê
                                 if(zzs_j<40)
-                                  zzs_weight-=table_code[zzs_j]*((zzs_i/120));
+                                  zzs_weight-=table_code[zzs_j]*((zzs_i/80)-30);
                                 else if(zzs_j>=40)                                  
-                                  zzs_weight+=table_code[80-zzs_j-1]*((zzs_i/120)); 
+                                  zzs_weight+=table_code[80-zzs_j-1]*((zzs_i/80)-30); 
 			}
 		}
 
@@ -216,7 +216,12 @@ void  main(void)
          wall_right=gpio_get(PTA16); 
          
          
-      if(wall_right==0)    //ÅÐ¶ÏÇ½±Ú
+         
+         
+         
+         
+         
+         if(wall_right==0)    //ÅÐ¶ÏÇ½±Ú
         {
            led(LED1, LED_ON);
            control_motor(-15*15*15);
@@ -227,7 +232,7 @@ void  main(void)
           if(flag<=10)
           {
             led(LED2, LED_ON);
-            control_motor(-40*40*15);
+            control_motor(-30*30*15);
             DELAY_MS(2);
             flag++;
           }
@@ -244,6 +249,17 @@ void  main(void)
             control_motor(turn());//¿ØÖÆµç»ú×ªÍä 
             led(LED1, LED_OFF);
 	}         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
     }
 }
 
