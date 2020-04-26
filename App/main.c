@@ -3,8 +3,9 @@
 #include "common.h"
 #include "include.h"
 
-//µçÑ¹7.4-7.5 speed 10
-//µçÑ¹7.7-7.8 speed 15
+//µçÑ¹7.35-7.36
+//7.5Ò²¿É
+
 #define MOTOR1_IO   PTC12
 #define MOTOR2_IO   PTE31
 #define MOTOR3_IO   PTC13
@@ -23,14 +24,14 @@
 
 #define MOTOR_HZ    (20*1000)
 
-#define angle_set 15
+#define angle_set 15//15
 
-#define stop_time 75//V=7.5£¬µÚÒ»¸ö°å75£»µÚ¶þ¸ö°å85£»µÚÈý¸ö°å90£»£¨2£¬3Î´²âÊÔ£©
+#define stop_time 85//
 
 char start_speed=10;
+unsigned int flag=0,time=0;
 
-
-char table_code[42]={70,70,60,60,55,50,45,45,40,40,40,30,30,30,25,25,20,20,15,15,15,15,10,10,10,3,3,3,2,2,2,2,1,1,1,1,0,0,0,0};
+char table_code[42]={60,60,60,60,55,50,45,45,40,40,40,30,30,30,25,25,20,20,15,15,15,15,10,10,10,3,3,3,2,2,2,2,1,1,1,1,0,0,0,0};
                      //60ÓÐÐ§
 
 uint8 imgbuff[CAMERA_SIZE];                             //¶¨Òå´æ´¢½ÓÊÕÍ¼ÏñµÄÊý×é
@@ -40,7 +41,7 @@ uint8 g_zzs_image[CAMERA_W*CAMERA_H];                              //×ª»»µ½¶þÎ¬Ê
 uint8 wall_left=0;
 uint8 wall_right=0;
 
-unsigned int flag=0,time=0;
+
 
 //º¯ÊýÉùÃ÷
 void vcan_sendimg(uint8 *imgaddr, uint32 imgsize);
@@ -50,7 +51,7 @@ void DMA0_IRQHandler();
 
 
 
-void LPTMR_IRQHandler(void)
+void LPTMR_IRQHandler(void)     //Í£³µ
 {   
   time++;
   if(flag>=8&&time>=stop_time)//½øµÚÒ»¸ö°åÍ£³µ
@@ -69,6 +70,17 @@ void LPTMR_IRQHandler(void)
     time=0;
   LPTMR_Flag_Clear();       //ÇåÖÐ¶Ï±êÖ¾Î»
 }
+
+
+
+
+
+
+
+
+
+
+
 
 int turn(void)
 {
@@ -207,17 +219,18 @@ void  main(void)
     
     gpio_init (PTA17,  GPI , 0);          //ºìÍâ¼ì²â¶Ë¿Ú
     gpio_init (PTA16,  GPI , 0); 
-
-    port_init (PTA17,  ALT1 | PULLUP );  //³õÊ¼»¯
+    
+    
+    
+    port_init (PTA17,  ALT1 | PULLUP ); 
     port_init (PTA16,  ALT1 | PULLUP );
     
     
-
     lptmr_timing_ms(100);                                  //³õÊ¼»¯LPTMR£¬¼ÆÊ±Ê±¼äÎª0.1s
     set_vector_handler(LPTMR_VECTORn ,LPTMR_IRQHandler);    //ÉèÖÃLPTMRµÄÖÐ¶Ï·þÎñº¯ÊýÎª LPTMR_IRQHandler
     enable_irq (LPTMR_IRQn);                                //Ê¹ÄÜLPTMRÖÐ¶Ï
-
-
+    
+    
     while(1)
     {
         //»ñÈ¡Í¼Ïñ
@@ -236,13 +249,14 @@ void  main(void)
          
          
          
-
+         
+         
          
          
          if(wall_right==0)    //ÅÐ¶ÏÇ½±Ú
         {
            led(LED1, LED_ON);
-           control_motor(-28*28*15);
+           control_motor(-18*18*15);//15
         }
  
           else if(wall_left==0)     //ÅÐ¶ÏÇ½±Ú
@@ -250,7 +264,7 @@ void  main(void)
           if(flag<=10)
           {
             led(LED2, LED_ON);
-            control_motor(-35*35*15);//½¨ÒéÔö´ó£¬Ìá¸ßÎÈ¶¨ÐÔ£¬Ô­ÊýÖµ30
+            control_motor(-40*40*15);   //30
             DELAY_MS(2);
             flag++;
           }
@@ -263,14 +277,7 @@ void  main(void)
 	else 
         {
             if(flag>=10)
-            {
-              start_speed=45;
-              table_code[0]=40;
-              table_code[1]=50;
-              table_code[2]=60;
-              //table_code[3]=0;
-              //table_code[4]=0;
-            }
+              start_speed=45;//45
             control_motor(turn());//¿ØÖÆµç»ú×ªÍä 
             led(LED1, LED_OFF);
 	}         
