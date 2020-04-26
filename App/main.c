@@ -23,13 +23,12 @@
 
 #define MOTOR_HZ    (20*1000)
 
-#define start_left 58
-#define start_right 55
+#define start_speed 30
 
-#define angle_set 23
-#define KH 0.4
+#define angle_set 30//28可行
 
-char table_code[42]={0,0,0,50,50,50,45,45,42,40,40,30,30,30,25,25,20,20,18,15,15,15,10,10,10,3,3,3,2,2,2,2,1,1,1,1,0,0,0,0};
+
+char table_code[42]={50,50,50,50,50,50,45,45,40,40,40,30,30,30,25,25,20,20,15,15,15,15,10,10,10,3,3,3,2,2,2,2,1,1,1,1,0,0,0,0};
                                                   //10
 
 uint8 imgbuff[CAMERA_SIZE];                             //定义存储接收图像的数组
@@ -59,19 +58,19 @@ int turn(void)
 			{
 				      //i为纵坐标 j为横坐标
                                 if(zzs_j<40)
-                                  zzs_weight-=table_code[zzs_j]*((zzs_i/80)-30)*KH;
+                                  zzs_weight-=table_code[zzs_j]*((zzs_i/80)-30);
                                 else if(zzs_j>=40)                                  
-                                  zzs_weight+=table_code[80-zzs_j-1]*((zzs_i/80)-30)*KH;
+                                  zzs_weight+=table_code[80-zzs_j-1]*((zzs_i/80)-30);
 				
 			}
 		}
         zzs_number=zzs_weight;
-        if(zzs_number>-100)
+        if(zzs_number>100)
         {
           led(LED0, LED_ON);                  
           led(LED3, LED_OFF); 
         }
-        if(zzs_number<100)
+        if(zzs_number<-100)
         {
           led(LED3, LED_ON);                  
           led(LED0, LED_OFF);
@@ -89,8 +88,8 @@ void control_motor(int angle)
 {   
   int turn=0;
   
-    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,start_left);
-    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_right);
+    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,start_speed);
+    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_speed);
     
     if(angle>0)
     {
@@ -101,8 +100,8 @@ void control_motor(int angle)
       angle=-angle;
       turn-=(int)sqrt((double)angle/angle_set);
     }
-    if(turn>=100-start_left||turn>=100-start_right)
-      turn=100-(start_left+start_right)/2;
+    if(turn>=100-start_speed)
+      turn=100-start_speed;
     if(turn>0)
     {
       tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100 - turn);//turn
@@ -173,11 +172,11 @@ void  main(void)
 
     
     tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100);   //电机左
-    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,start_left);
+    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,start_speed);
 
     
     tpm_pwm_duty(MOTOR_TPM, MOTOR3_PWM,100);   //电机右
-    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_right);
+    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_speed);
     
     while(1)
     {
@@ -185,7 +184,7 @@ void  main(void)
         camera_get_img();                                   //摄像头获取图像
 
         //多功能调试助手上位机显示，需要配置成黑白模式
-        vcan_sendimg(imgbuff,CAMERA_SIZE);
+        //vcan_sendimg(imgbuff,CAMERA_SIZE);
 
 
         //解压图像  ，把解压的数据放到 img 数据里。
