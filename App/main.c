@@ -23,12 +23,13 @@
 
 #define MOTOR_HZ    (20*1000)
 
-#define start_speed 30
+#define start_speed 45 
+//unlock kinetis
+#define angle_set 10
+#define KH 1
+#define LINE 10
 
-#define angle_set 30//28可行
-
-
-char table_code[42]={50,50,50,50,50,50,45,45,40,40,40,30,30,30,25,25,20,20,15,15,15,15,10,10,10,3,3,3,2,2,2,2,1,1,1,1,0,0,0,0};
+char table_code[42]={0,0,0,50,50,50,50,50,40,40,40,30,30,30,25,25,20,20,20,15,15,15,10,10,5,3,3,3,2,2,2,2,1,1,1,1,0,0,0,0};
                                                   //10
 
 uint8 imgbuff[CAMERA_SIZE];                             //定义存储接收图像的数组
@@ -51,29 +52,29 @@ int turn(void)
 	int zzs_i =2400, zzs_j;
 	int zzs_number=0;
         int zzs_weight=0;
-	for(zzs_i=30*80;zzs_i<4800;zzs_i+=80)
+	for(zzs_i=LINE*80;zzs_i<4800;zzs_i+=80)
 		for(zzs_j=0;zzs_j<80;zzs_j+=1)
 		{
 			if(g_zzs_image[zzs_i+zzs_j]!=0)
 			{
 				      //i为纵坐标 j为横坐标
                                 if(zzs_j<40)
-                                  zzs_weight-=table_code[zzs_j]*((zzs_i/80)-30);
+                                  zzs_weight-=(table_code[zzs_j]+((zzs_i/80)-LINE)*KH);
                                 else if(zzs_j>=40)                                  
-                                  zzs_weight+=table_code[80-zzs_j-1]*((zzs_i/80)-30);
+                                  zzs_weight+=(table_code[80-zzs_j-1]+((zzs_i/80)-LINE)*KH);
 				
 			}
 		}
         zzs_number=zzs_weight;
-        if(zzs_number>100)
-        {
-          led(LED0, LED_ON);                  
-          led(LED3, LED_OFF); 
-        }
-        if(zzs_number<-100)
+        if(zzs_number>-100)
         {
           led(LED3, LED_ON);                  
-          led(LED0, LED_OFF);
+          led(LED0, LED_OFF); 
+        }
+        if(zzs_number<100)
+        {
+          led(LED0, LED_ON);                  
+          led(LED3, LED_OFF);
         }
         if(zzs_number>=-100 && zzs_number<=100)
         {      
@@ -184,7 +185,7 @@ void  main(void)
         camera_get_img();                                   //摄像头获取图像
 
         //多功能调试助手上位机显示，需要配置成黑白模式
-        //vcan_sendimg(imgbuff,CAMERA_SIZE);
+        vcan_sendimg(imgbuff,CAMERA_SIZE);
 
 
         //解压图像  ，把解压的数据放到 img 数据里。
