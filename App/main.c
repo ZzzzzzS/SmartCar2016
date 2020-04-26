@@ -21,20 +21,20 @@
 #define MOTOR3_PWM_IO  TPM0_CH2
 #define MOTOR4_PWM_IO  TPM0_CH3
 
+
 #define MOTOR_HZ    (20*1000)
 
-#define start_speed 1 
 
-#define angle_set 15//28可行
+#define start_left 63
+#define start_right 60
+#define angle_set 5
 
-
-char table_code[42]={60,60,60,60,55,50,45,45,40,40,40,30,30,30,25,25,20,20,15,15,15,15,10,10,10,3,3,3,2,2,2,2,1,1,1,1,0,0,0,0};
-                                                  //10
 
 uint8 imgbuff[CAMERA_SIZE];                             //定义存储接收图像的数组
-                           //由于鹰眼摄像头是一字节8个像素，因而需要解压为 1字节1个像素，方便处理
-
+//uint8 img[CAMERA_W*CAMERA_H];                           //由于鹰眼摄像头是一字节8个像素，因而需要解压为 1字节1个像素，方便处理
 uint8 g_zzs_image[CAMERA_W*CAMERA_H];                              //转换到二维数组
+
+unsigned char cross=0;
 
 //函数声明
 void vcan_sendimg(uint8 *imgaddr, uint32 imgsize);
@@ -43,74 +43,113 @@ void PORTA_IRQHandler();
 void DMA0_IRQHandler();
 
 
-
-
+//{50,50,50,40,40,40,40,40,40,40,40,35,30,30,30,25,25,25,25,10,10,10,10,10,5,5,5,1,1,0};
+char weight[30]={0,1,1,5,5,5,10,10,10,10,10,25,25,25,25,30,30,30,35,35,35,40,40,40,40,40,40,50,50,50};
 
 int turn(void)
 {
-	int zzs_i =2400, zzs_j;
-	int zzs_number=0;
-        int zzs_weight=0;
+  int row=0,col=0,mark_col=0;
+  int mark_num=0,center[50]={0},flag=0;
+  
+  
+  for(row=10*80;row<60*80;row+=80)
+  {
+    for(col=10;col<70;col++)//中点为40
+    {
+      if(g_zzs_image[row+col]!=0)
+      {
+        mark_col+=col-40;
+        mark_num++;
+      }
+    }
+     
+      
+      
+      
+      if(mark_num!=0)
+        center[row/80-10]=mark_col/mark_num;
+      else if(mark_num==0)
+        center[row/80-10]=0;
+      
+      
+      
+      if(mark_num>40)        //十字
+      {
+        flag++;
+      }   
+      
+      
+      
+      mark_col=0;
+      mark_num=0;      
+  }
+  
+  
+  
+  
+  mark_col=0;              //再次清零
+  mark_num=0;
+  
+  
+  
+  if(flag>3)              //十字
+    cross++;
+  
+  
+  
+  
+  for(row=10;row<50;row++)
+  {
+    if(center[row]==0)
+      continue;
+    else if(center[row]!=0)
+    {
+      mark_col+=center[row];
+      mark_num++;
+    }
+    if(mark_num>=5)
+      break;
+  }
+        mark_col/=5;
 
-	for(zzs_i=30*80;zzs_i<4800;zzs_i+=80)
-		for(zzs_j=0;zzs_j<80;zzs_j+=1)
-		{
-			if(g_zzs_image[zzs_i+zzs_j]!=0)
-			{
-				      //i为纵坐标 j为横坐标
-                                if(zzs_j<40)
-                                  zzs_weight-=table_code[zzs_j]*((zzs_i/80)-30);
-                                else if(zzs_j>=40)                                  
-                                  zzs_weight+=table_code[80-zzs_j-1]*((zzs_i/80)-30); 
-			}
-		}
-
-        zzs_number=zzs_weight;
-        if(zzs_number>100)
-        {
-          led(LED0, LED_ON);                  
-          led(LED3, LED_OFF); 
-        }
-        if(zzs_number<-100)
+        if(mark_col>5)
         {
           led(LED3, LED_ON);                  
-          led(LED0, LED_OFF);
+          led(LED0, LED_OFF); 
         }
-        if(zzs_number>=-100 && zzs_number<=100)
+        if(mark_col<-5)
+        {
+          led(LED0, LED_ON);                  
+          led(LED3, LED_OFF);
+        }
+        if(mark_col>=-5 && mark_col<=5)
         {      
           led(LED3, LED_ON);                  
           led(LED0, LED_ON);
         }
-        return -zzs_number;
+        
+        if(mark_col>0)
+          return weight[mark_col];
+        else if(mark_col<0)
+          return -weight[-mark_col];
+        else if(mark_col==0) 
+          return 0;
 }
 
 
-void control_motor(int angle)
+void control_motor(int turn)
 {   
-  int turn=0;
-  
-    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,start_speed);
-    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_speed);
-    
-    if(angle>0)
-    {
-      turn+=(int)sqrt((double)angle/angle_set);
-    }
-    else if(angle<0)
-    {
-      angle=-angle;
-      turn-=(int)sqrt((double)angle/angle_set);
-    }
-    if(turn>=100-start_speed)
-      turn=100-start_speed;
+
+    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,start_left);
+    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_right);
     if(turn>0)
     {
-      tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100 - turn);//turn
+      tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100 - turn);
       tpm_pwm_duty(MOTOR_TPM, MOTOR3_PWM,100);
     }
     else if(turn<0)
     {
-      tpm_pwm_duty(MOTOR_TPM, MOTOR3_PWM,100 + turn);//turn
+      tpm_pwm_duty(MOTOR_TPM, MOTOR3_PWM,100 + turn);
       tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100);
       
     }
@@ -146,7 +185,11 @@ void  main(void)
   led_init(LED0);                         //初始化LED0
   led_init(LED3);
   
- 
+  
+  
+
+  //int zzs_i,zzs_j;
+  //int zzs_turn;
   
   tpm_pwm_init(MOTOR_TPM, MOTOR1_PWM,MOTOR_HZ,100);      //初始化 电机 PWM
   tpm_pwm_init(MOTOR_TPM, MOTOR2_PWM,MOTOR_HZ,100);      //初始化 电机 PWM
@@ -162,7 +205,7 @@ void  main(void)
   
   
   //初始化串口
- // uart_init(UART0,115200);
+  uart_init(UART0,115200);
     
     //初始化摄像头
     camera_init(imgbuff);
@@ -173,11 +216,11 @@ void  main(void)
 
     
     tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100);   //电机左
-    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,start_speed);
+    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,start_left);
 
     
     tpm_pwm_duty(MOTOR_TPM, MOTOR3_PWM,100);   //电机右
-    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_speed);
+    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_right);
     
     while(1)
     {
@@ -185,16 +228,22 @@ void  main(void)
         camera_get_img();                                   //摄像头获取图像
 
         //多功能调试助手上位机显示，需要配置成黑白模式
-        //vcan_sendimg(imgbuff,CAMERA_SIZE);
+        vcan_sendimg(imgbuff,CAMERA_SIZE);
 
 
         //解压图像  ，把解压的数据放到 img 数据里。
         img_extract(g_zzs_image,imgbuff,CAMERA_SIZE);
               
- 
+   
+        
+        
         //获得转向角度
         
-        control_motor(turn());//控制电机转弯 
+        control_motor(turn());//控制电机转弯
+        
+  
+                                        
+        
 
     }
 }
