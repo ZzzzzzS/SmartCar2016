@@ -21,22 +21,18 @@
 #define MOTOR3_PWM_IO  TPM0_CH2
 #define MOTOR4_PWM_IO  TPM0_CH3
 
-
 #define MOTOR_HZ    (20*1000)
 
+#define start_speed 65
 
-#define start_left 63
-#define start_right 60
-#define angle_set 5
-
-
-#define KL 1.7
-#define KH 0.1
+#define angle_set 35
 
 
+char table_code[42]={0,0,0,50,50,50,45,45,40,40,40,30,30,30,25,25,20,20,15,15,15,15,10,10,10,3,3,3,2,2,2,2,1,1,1,1,0,0,0,0};
+                                                  //10
 
 uint8 imgbuff[CAMERA_SIZE];                             //定义存储接收图像的数组
-//uint8 img[CAMERA_W*CAMERA_H];                           //由于鹰眼摄像头是一字节8个像素，因而需要解压为 1字节1个像素，方便处理
+                           //由于鹰眼摄像头是一字节8个像素，因而需要解压为 1字节1个像素，方便处理
 
 uint8 g_zzs_image[CAMERA_W*CAMERA_H];                              //转换到二维数组
 
@@ -50,72 +46,77 @@ void DMA0_IRQHandler();
 
 
 
+uint8 wall_left=0;
+uint8 wall_right=0;
+
+
+
+
+
 int turn(void)
 {
 	int zzs_i =2400, zzs_j;
 	int zzs_number=0;
         int zzs_weight=0;
-	for(zzs_i=20*80;zzs_i<4800;zzs_i+=80)
-		for(zzs_j=10;zzs_j<70;zzs_j+=1)
+	for(zzs_i=30*80;zzs_i<4800;zzs_i+=80)
+		for(zzs_j=0;zzs_j<80;zzs_j+=1)
 		{
 			if(g_zzs_image[zzs_i+zzs_j]!=0)
 			{
-			                                              //i为纵坐标 j为横坐标
-                          
-                          
-                          zzs_weight+=((zzs_j-40)*KL)*((zzs_i/80)*KH);
-                          /*
-                          if(zzs_j-40<0)
-                            zzs_weight-=((zzs_j-40)*(zzs_j-40)*KL)*((zzs_i/80)*KH);
-                          else if(zzs_j-40>=0)
-                            zzs_weight+=((zzs_j-40)*(zzs_j-40)*KL)*((zzs_i/80)*KH);
-                          */
-                          zzs_number++;
-
-			}   
+				      //i为纵坐标 j为横坐标
+                                if(zzs_j<40)
+                                  zzs_weight-=table_code[zzs_j]*((zzs_i/80)-30);
+                                else if(zzs_j>=40)                                  
+                                  zzs_weight+=table_code[80-zzs_j-1]*((zzs_i/80)-30);
+				
+			}
 		}
-        zzs_number=zzs_weight/zzs_number;
-        if(zzs_number>5)
+        zzs_number=zzs_weight;
+        if(zzs_number>100)
         {
           led(LED0, LED_ON);                  
           led(LED3, LED_OFF); 
         }
-        if(zzs_number<-5)
+        if(zzs_number<-100)
         {
           led(LED3, LED_ON);                  
           led(LED0, LED_OFF);
         }
-        if(zzs_number>=-5 && zzs_number<=5)
+        if(zzs_number>=-100 && zzs_number<=100)
         {      
           led(LED3, LED_ON);                  
           led(LED0, LED_ON);
         }
-        return zzs_number;
+        return -zzs_number;
 }
 
 
-void control_motor(int turn)
+void control_motor(int angle)
 {   
+  int turn=0;
   
-    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,start_left);
-    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_right);
+    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,start_speed);
+    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_speed);
     
-    
-    
-    if(turn>=100-start_left||turn>=100-start_right)
-      turn=100-(start_left+start_right)/2;
-    
-    if(turn)
-    
-
+    if(angle>0)
+    {
+      turn+=(int)sqrt((double)angle/angle_set);
+    }
+    else if(angle<0)
+    {
+      angle=-angle;
+      turn-=(int)sqrt((double)angle/angle_set);
+    }
+    if(turn>=100-start_speed)
+      turn=100-start_speed;
     if(turn>0)
     {
-      tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100 - turn);       //右
-      tpm_pwm_duty(MOTOR_TPM, MOTOR3_PWM,100);   
+      tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100 - turn);//turn
+      tpm_pwm_duty(MOTOR_TPM, MOTOR3_PWM,100);
     }
     else if(turn<0)
     {
-      tpm_pwm_duty(MOTOR_TPM, MOTOR3_PWM,100 + turn);       //左
+      tpm_pwm_duty(MOTOR_TPM, MOTOR3_PWM,100 + turn);//turn
       tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100);
       
     }
@@ -126,18 +127,6 @@ void control_motor(int turn)
       
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*!
  *  @brief      main函数
@@ -150,12 +139,8 @@ void  main(void)
   
   led_init(LED0);                         //初始化LED0
   led_init(LED3);
-  
-  
-  
-
-  //int zzs_i,zzs_j;
-  //int zzs_turn;
+  led_init(LED2);
+ 
   
   tpm_pwm_init(MOTOR_TPM, MOTOR1_PWM,MOTOR_HZ,100);      //初始化 电机 PWM
   tpm_pwm_init(MOTOR_TPM, MOTOR2_PWM,MOTOR_HZ,100);      //初始化 电机 PWM
@@ -182,16 +167,25 @@ void  main(void)
 
     
     tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100);   //电机左
-    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,start_left);
+    tpm_pwm_duty(MOTOR_TPM, MOTOR2_PWM,start_speed);
 
     
     tpm_pwm_duty(MOTOR_TPM, MOTOR3_PWM,100);   //电机右
-    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_right);
+    tpm_pwm_duty(MOTOR_TPM, MOTOR4_PWM,start_speed);
+    
+    
+
+    gpio_init (PTA17 , GPI , 0);          //红外检测端口
+    port_init (PTA17,  ALT1 | PULLUP ); 
+    
+    
+   
+    
     
     while(1)
     {
-        //获取图像
-        camera_get_img();                                   //摄像头获取图像
+        //摄像头获取图像
+        camera_get_img();                                   
 
         //多功能调试助手上位机显示，需要配置成黑白模式
         vcan_sendimg(imgbuff,CAMERA_SIZE);
@@ -199,18 +193,20 @@ void  main(void)
 
         //解压图像  ，把解压的数据放到 img 数据里。
         img_extract(g_zzs_image,imgbuff,CAMERA_SIZE);
-              
-   
-        
-        
-        //获得转向角度
-        
-        control_motor(turn());//控制电机转弯
-        
-  
-                                        
-        
-
+                 
+		wall_left=gpio_get(PTA17); //获得红外数据
+	  
+	  
+		if(wall_left==0)     //判断墙壁
+		{
+			control_motor(0);
+                        led(LED2, LED_ON);
+		}
+		else 
+                {
+                        control_motor(turn());//控制电机转弯
+                        led(LED2, LED_OFF);
+		}
     }
 }
 
