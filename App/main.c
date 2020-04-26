@@ -22,7 +22,7 @@
 
 #define MOTOR_HZ    (20*1000)
 
-#define angle_set 30    //15
+char angle_set=15;    //15   注意后面还有个angle_set要修改
 
 char stop_time=85;
 
@@ -84,13 +84,13 @@ void LPTMR_IRQHandler(void)     //停车
 int turn(void)
 {
 	int zzs_i =2400, zzs_j;
-	int zzs_number=0;
-        int zzs_weight=0;
+	long long int zzs_number=0;
+        long long int zzs_weight=0;
 
 	for(zzs_i=30*80;zzs_i<4800;zzs_i+=80)
 		for(zzs_j=0;zzs_j<80;zzs_j+=1)
 		{
-			if(g_zzs_image[zzs_i+zzs_j]==0)    //==是飞卡版    !=0是早年飞卡版
+			if(g_zzs_image[zzs_i+zzs_j]!=0)
 			{
 				      //i为纵坐标 j为横坐标
                                 if(zzs_j<40)
@@ -138,12 +138,6 @@ void control_motor(int angle)
     }
     if(turn>=100-start_speed)
       turn=100-start_speed;
-    if(flag>=10&&time>=30)
-    {             
-       if(turn<-8)
-             turn=-8;
-         
-    }
     if(turn>0)
     {
       tpm_pwm_duty(MOTOR_TPM, MOTOR1_PWM,100 - turn);//turn
@@ -180,7 +174,7 @@ void control_motor(int angle)
  *  @since      v5.0
  *  @note       山外 DMA 采集摄像头 实验
  */
- void  main(void)
+void  main(void)
 {
   char inin=0;
   
@@ -265,7 +259,7 @@ void control_motor(int angle)
     while(gpio_get(PTB1)!=0);
     DELAY_MS(10);
     while(gpio_get(PTB1)!=0);
-    start_speed=5;
+    start_speed=10;
     while(1)
     {
         //获取图像
@@ -285,14 +279,14 @@ void control_motor(int angle)
         
 
          
-         if(wall_right==0&&flag>=5)    //判断墙壁
+         if(wall_right==0)    //判断墙壁
         {
            led(LED1, LED_ON);
-           control_motor(-20*20*15);//15
+           control_motor(-18*18*15);//15
         }
  
           else if(wall_left==0)     //判断墙壁
-	{          
+	{ 
           if(flag<=10)
           {
             led(LED2, LED_ON);
@@ -308,13 +302,12 @@ void control_motor(int angle)
 	}
 	else 
         {
-          if(flag>=10)
-          {
-              //start_speed=45;//45
-            if(start_speed<45)
-              start_speed+=1;
-         
-          }
+            if(flag>=10)
+			{
+				start_speed=30;//45
+				angle_set=10;
+			}
+              
             control_motor(turn());//控制电机转弯 
             led(LED1, LED_OFF);
 	}         
